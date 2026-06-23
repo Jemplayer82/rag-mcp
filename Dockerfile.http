@@ -1,0 +1,20 @@
+# Wraps the stdio RAG MCP server in supergateway for streamable HTTP transport.
+# Same convention as proxmox-mcp-shared and portainer-mcp-shared: exposes /mcp on
+# port 8000 so it can sit in the mcp-shared Portainer stack alongside the others.
+FROM node:20-bookworm-slim AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates python3 python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g supergateway \
+    && npm cache clean --force
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
+COPY mcp_server.py .
+
+ENV RAG_BASE_URL="" RAG_USERNAME="" RAG_PASSWORD="" RAG_TOKEN=""
+EXPOSE 8000
+
+ENTRYPOINT ["sh", "-c", "exec supergateway --outputTransport streamableHttp --port 8000 --stdio 'python3 -u /app/mcp_server.py'"]

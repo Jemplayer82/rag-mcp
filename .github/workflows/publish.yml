@@ -34,13 +34,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      # stdio variant — for local use via Claude Desktop / Claude Code
+      - name: Build and push :latest (stdio)
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile
           push: true
           tags: |
             ghcr.io/${{ env.IMAGE_NAME }}:latest
             ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # HTTP variant — for mcp-shared Portainer stack (supergateway bridge)
+      - name: Build and push :http (streamable HTTP)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.http
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAME }}:http
+            ghcr.io/${{ env.IMAGE_NAME }}:http-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
