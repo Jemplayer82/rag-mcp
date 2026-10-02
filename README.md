@@ -1,28 +1,16 @@
+<p align="center"><img src="assets/fathom-header-banner.svg" alt="Fathom Works — rag-mcp" width="100%"></p>
+
 # `$ rag-mcp`
 
-**MCP server for [Fathom Works RAG](https://github.com/Jemplayer82/RAG) — exposes the self-hosted knowledge base as tools any MCP-capable LLM can call.**
+**Lets an AI assistant like Claude search and manage your private document library.** It connects to your own [Fathom Works RAG](https://github.com/Jemplayer82/RAG) server, so you can ask questions about your files without opening the web page.
 
-Query documents, manage libraries, and ingest local files or URLs without opening the web UI.
+**In plain terms:** MCP is a plug-in format that lets an AI assistant use outside tools. This is one of those plug-ins. It is for people who already run a Fathom Works RAG server and want Claude to use it.
 
----
-
-## `[ what it does ]`
-
-| Tool | Who can call it | Description |
-|------|-----------------|-------------|
-| `query` | any user | Semantic + BM25 search across one or more libraries; returns LLM answer with citations |
-| `list_libraries` | any user | List libraries and their document counts |
-| `list_documents` | any user | List documents, optionally filtered by library or title |
-| `add_file` | admin | Ingest a **local file** (PDF, TXT, DOC, DOCX) into a library |
-| `add_url` | admin | Ingest a web URL into a library |
-| `get_job_status` | admin | Check ingestion job progress |
-| `delete_document` | admin | Remove a document and all its vectors |
-
----
+*A [Fathom Works](https://github.com/Jemplayer82) project.*
 
 ## `[ quick start ]`
 
-### Option A — run with Python (no Docker)
+Run it with Python:
 
 ```bash
 git clone https://github.com/Jemplayer82/rag-mcp.git
@@ -32,109 +20,27 @@ cp .env.example .env   # fill in RAG_BASE_URL + credentials
 python mcp_server.py   # starts the stdio MCP server
 ```
 
-### Option B — run with Docker
+Or pull the Docker image. No config file is needed. Pass the settings when you run it.
 
 ```bash
 docker pull ghcr.io/jemplayer82/rag-mcp:latest
 ```
 
-No config file needed — pass environment variables directly at runtime (see Claude config below).
+Then tell Claude how to start it. See [connect to Claude](docs/connect-to-claude.md).
 
----
+## `[ tools ]`
 
-## `[ connect to Claude ]`
+| Tool | Who can call it | What it does |
+|------|-----------------|--------------|
+| `query` | any user | Searches one or more libraries and returns an answer with citations |
+| `list_libraries` | any user | Lists libraries and how many documents each holds |
+| `list_documents` | any user | Lists documents, optionally filtered by library or title |
+| `add_file` | admin | Adds a **local file** (PDF, TXT, DOC, DOCX) to a library |
+| `add_url` | admin | Adds a web page to a library |
+| `get_job_status` | admin | Checks how far an upload has progressed |
+| `delete_document` | admin | Removes a document and all its search data |
 
-### Claude Desktop (`claude_desktop_config.json`)
-
-**Docker (recommended — zero local setup):**
-
-```json
-{
-  "mcpServers": {
-    "rag": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "RAG_BASE_URL=http://YOUR_RAG_HOST:8000",
-        "-e", "RAG_USERNAME=admin",
-        "-e", "RAG_PASSWORD=yourpassword",
-        "ghcr.io/jemplayer82/rag-mcp:latest"
-      ]
-    }
-  }
-}
-```
-
-**Python (local install):**
-
-```json
-{
-  "mcpServers": {
-    "rag": {
-      "command": "python",
-      "args": ["/path/to/rag-mcp/mcp_server.py"],
-      "env": {
-        "RAG_BASE_URL": "http://YOUR_RAG_HOST:8000",
-        "RAG_USERNAME": "admin",
-        "RAG_PASSWORD": "yourpassword"
-      }
-    }
-  }
-}
-```
-
-### Claude Code (`.claude/mcp.json`)
-
-```json
-{
-  "mcpServers": {
-    "rag": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-e", "RAG_BASE_URL=http://YOUR_RAG_HOST:8000",
-        "-e", "RAG_USERNAME=admin",
-        "-e", "RAG_PASSWORD=yourpassword",
-        "ghcr.io/jemplayer82/rag-mcp:latest"
-      ]
-    }
-  }
-}
-```
-
-Or via CLI:
-
-```bash
-claude mcp add rag -- docker run -i --rm \
-  -e RAG_BASE_URL=http://YOUR_RAG_HOST:8000 \
-  -e RAG_USERNAME=admin \
-  -e RAG_PASSWORD=yourpassword \
-  ghcr.io/jemplayer82/rag-mcp:latest
-```
-
----
-
-## `[ auth ]`
-
-| Method | Variables | Notes |
-|--------|-----------|-------|
-| Username + password | `RAG_USERNAME`, `RAG_PASSWORD` | **Recommended.** Token is fetched on first call and refreshed automatically on expiry. |
-| Static JWT | `RAG_TOKEN` | Works but cannot self-refresh. Copy from browser DevTools → Application → Local Storage → `rag_token`. |
-
----
-
-## `[ environment variables ]`
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `RAG_BASE_URL` | `http://localhost:8000` | Base URL of the RAG app (no trailing slash) |
-| `RAG_USERNAME` | — | Admin or user account username |
-| `RAG_PASSWORD` | — | Account password |
-| `RAG_TOKEN` | — | Pre-generated JWT (alternative to username/password) |
-
----
-
-## `[ using the tools ]`
+## `[ usage ]`
 
 **Ask a question (search all libraries):**
 ```
@@ -157,30 +63,25 @@ get_job_status(42)  # poll until complete
 add_url("https://example.com/article", title="Article", library_id=1)
 ```
 
----
+## `[ configuration ]`
 
-## `[ smoke test ]`
+Sign in with a username and password. The server fetches a login token on the first call and renews it when it expires. This is the recommended way.
 
-Test without connecting to Claude Desktop using the MCP Inspector:
+| Variable | What it does | Default |
+|----------|--------------|---------|
+| `RAG_BASE_URL` | Address of the RAG app (no trailing slash) | `http://localhost:8000` |
+| `RAG_USERNAME` | Account username | — |
+| `RAG_PASSWORD` | Account password | — |
+| `RAG_TOKEN` | Ready-made login token (JWT). Cannot renew itself. Copy it from browser DevTools → Application → Local Storage → `rag_token` | — |
 
-```bash
-RAG_BASE_URL=http://YOUR_HOST:8000 RAG_USERNAME=admin RAG_PASSWORD=yourpass \
-  npx @modelcontextprotocol/inspector python mcp_server.py
-```
+Requires Python 3.10+ on your own machine (not the RAG container) and a running [Fathom Works RAG](https://github.com/Jemplayer82/RAG) server.
 
----
+## `[ docs ]`
 
-## `[ requirements ]`
-
-- Python 3.10+ (uses `X | None` type annotations) — **local machine**, not the RAG container
-- Running [Fathom Works RAG](https://github.com/Jemplayer82/RAG) instance (self-hosted or VPS)
-
----
+- [Connect to Claude](docs/connect-to-claude.md): Claude Desktop and Claude Code settings, plus a smoke test.
 
 ## `[ license ]`
 
 Released under the [GNU AGPL-3.0](LICENSE).
 
----
-
-<sub>Part of the <a href="https://github.com/Jemplayer82/RAG">Fathom Works RAG</a> ecosystem.</sub>
+<img src="assets/fathom-footer-banner.svg" alt="Fathom Works — sound the depths before you set a course" width="100%">
